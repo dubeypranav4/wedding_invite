@@ -64,6 +64,22 @@
     overflow-x:hidden;
     transition:background 0.35s ease, color 0.35s ease;
   }
+  /* Subtle paper grain — makes the ivory read like cardstock */
+  .grain{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    opacity:0.05;
+    mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  body.dark .grain{
+    opacity:0.09;
+    mix-blend-mode:overlay;
+  }
+  @media (prefers-reduced-motion: reduce){ .grain{ opacity:0.04; } }
+
   .stage{
     position:relative;
     width:100%;
@@ -235,18 +251,37 @@
     font-weight:500;
     font-size:clamp(30px, 8.5vw, 58px);
     line-height:1.08;
-    color:var(--charcoal);
     margin:0;
     opacity:0;
     transform:translateY(14px);
-    animation:riseIn 1s ease-out forwards;
-    animation-delay:1.6s;
+    /* gold shimmer: a bright band sweeps across once, then settles to charcoal */
+    background-image:linear-gradient(100deg,
+      var(--charcoal) 36%, var(--gold-soft) 46%, #fff6df 50%, var(--gold-soft) 54%, var(--charcoal) 64%);
+    background-size:230% 100%;
+    background-position:145% 0;
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    color:transparent;
+    animation:riseIn 1s ease-out 1.6s forwards, shimmer 1.7s ease-in-out 2.5s forwards;
   }
+  @keyframes shimmer{ to{ background-position:-45% 0; } }
   .names .amp{
     font-style:italic;
+    -webkit-text-fill-color:var(--rose);
     color:var(--rose);
     font-size:0.75em;
     padding:0 6px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .names{
+      background:none;
+      -webkit-text-fill-color:var(--charcoal);
+      color:var(--charcoal);
+      opacity:1;
+      transform:none;
+      animation:none;
+    }
   }
 
   .invocation{
@@ -334,15 +369,31 @@
     margin:18px auto 0;
     max-width:440px;
   }
+  /* Scroll-reveal utility */
+  .reveal{
+    opacity:0;
+    transform:translateY(18px);
+    transition:opacity 0.7s ease, transform 0.6s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .reveal.in-view{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ opacity:1; transform:none; transition:none; }
+  }
+
   .event{
     border:1px solid var(--gold-soft);
     border-radius:6px;
     padding:20px 18px 18px;
     background:linear-gradient(135deg,var(--card1),var(--card2));
-    opacity:0;
-    transform:translateY(14px);
-    animation:riseIn 0.8s ease-out forwards;
   }
+  /* Soft lift on hover / tap (after .reveal rules so it wins when hovered) */
+  .event:hover{
+    transform:translateY(-4px);
+    box-shadow:0 12px 28px rgba(58,22,27,0.16);
+    border-color:var(--gold);
+  }
+  .event:active{ transform:translateY(-1px); }
+  body.dark .event:hover{ box-shadow:0 12px 30px rgba(0,0,0,0.45); }
   .ev-name{
     font-family:'Cormorant Garamond',serif;
     font-weight:600;
@@ -510,9 +561,6 @@
     border-radius:5px;
     overflow:hidden;
     background:linear-gradient(135deg,var(--card1),var(--card2));
-    opacity:0;
-    animation:riseIn 0.9s ease-out forwards;
-    animation-delay:4.7s;
   }
   .video-card video{
     position:absolute;
@@ -689,9 +737,6 @@
     font-style:italic;
     font-size:17px;
     color:var(--rose);
-    opacity:0;
-    animation:riseIn 0.9s ease-out forwards;
-    animation-delay:5.0s;
   }
 
   @keyframes riseIn{
@@ -701,6 +746,7 @@
 </style>
 </head>
 <body>
+<div class="grain" aria-hidden="true"></div>
 <div class="theme-toggle">
   <button type="button" id="themeBtn" aria-label="Toggle dark mode"></button>
 </div>
@@ -758,7 +804,7 @@
       <div class="cd-unit"><span class="cd-num" id="cdSecs">--</span><span class="cd-lbl" id="cdSecsL">Seconds</span></div>
     </div>
 
-    <div class="video-card" id="videoCard" aria-label="Video invitation">
+    <div class="video-card reveal" id="videoCard" aria-label="Video invitation">
       <video id="inviteVideo" muted loop playsinline preload="none"></video>
       <div class="vc-overlay" id="vcOverlay">
         <div class="vc-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
@@ -773,7 +819,7 @@
       </div>
     </div>
 
-    <p class="closing" id="t_closing">With love, we hope you'll be there</p>
+    <p class="closing reveal" id="t_closing">With love, we hope you'll be there</p>
   </div>
 </div>
 
@@ -1115,8 +1161,25 @@
   const dirSvg = '<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.4-7-11a7 7 0 0 1 14 0c0 4.6-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
   const calSvg = '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>';
 
+  /* ===== Scroll reveal ===== */
+  const revealIO = ("IntersectionObserver" in window)
+    ? new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting){
+            e.target.classList.add("in-view");
+            revealIO.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" })
+    : null;
+  function reveal(el){
+    if (!el) return;
+    if (revealIO) revealIO.observe(el);
+    else el.classList.add("in-view");
+  }
+
   /* ===== Render the event schedule ===== */
-  let eventsRendered = false;   // entrance animation only on the very first render
+  let eventsRendered = false;   // reveal-on-scroll only on the very first render
   function renderEvents(lang){
     const wrap = document.getElementById("events");
     const list = visibleEvents();
@@ -1126,15 +1189,7 @@
     list.forEach(function(ev, i){
       const t = (s.events[ev.id]) || {};
       const card = document.createElement("div");
-      card.className = "event";
-      if (eventsRendered){
-        // Re-render (e.g. language switch): show instantly, no replayed delay.
-        card.style.animation = "none";
-        card.style.opacity = "1";
-        card.style.transform = "none";
-      } else {
-        card.style.animationDelay = (3.9 + i * 0.25) + "s";
-      }
+      card.className = "event reveal";
       card.innerHTML =
         '<div class="ev-name">' + (t.name || ev.id) + '</div>' +
         '<div class="ev-date">' + (t.date || "") + '</div>' +
@@ -1146,6 +1201,12 @@
         '</div>';
       card.querySelector(".ev-cal").addEventListener("click", function(){ addToCalendar(ev, lang); });
       wrap.appendChild(card);
+      if (eventsRendered){
+        card.classList.add("in-view");   // language switch on an already-rendered page: show at once
+      } else {
+        // First load: reveal as part of the intro cascade (after the hero), staggered.
+        setTimeout(function(){ card.classList.add("in-view"); }, 3600 + i * 250);
+      }
     });
     eventsRendered = true;
   }
@@ -1185,6 +1246,7 @@
   const urlLang = new URLSearchParams(location.search).get("lang");
   if (urlLang === "hi" || urlLang === "en") savedLang = urlLang;
   applyLang(savedLang);
+  reveal(document.getElementById("t_closing"));
 
   /* ===== Lazy-loaded video invite (muted; tap for sound; fullscreen) ===== */
   (function(){
@@ -1225,17 +1287,24 @@
     }
     video.addEventListener("playing", function(){ card.classList.add("playing"); });
 
-    if ("IntersectionObserver" in window){
-      const io = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){
-          if (e.isIntersecting) play();
-          else if (loaded) video.pause();
-        });
-      }, { threshold: 0.35 });
-      io.observe(card);
-    } else {
-      play();
+    function startWhenVisible(){
+      if ("IntersectionObserver" in window){
+        const io = new IntersectionObserver(function(entries){
+          entries.forEach(function(e){
+            if (e.isIntersecting) play();
+            else if (loaded) video.pause();
+          });
+        }, { threshold: 0.35 });
+        io.observe(card);
+      } else {
+        play();
+      }
     }
+    // Only reveal the player once we know the file actually exists — avoids the
+    // card flashing in and then hiding itself when the video is missing.
+    fetch(CONFIG.inviteVideo, { method: "HEAD" })
+      .then(function(r){ if (!r.ok) throw new Error("missing"); reveal(card); startWhenVisible(); })
+      .catch(function(){ card.style.display = "none"; });
 
     function toggleSound(e){
       if (e) e.stopPropagation();
