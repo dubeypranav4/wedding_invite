@@ -946,6 +946,7 @@
   const calSvg = '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>';
 
   /* ===== Render the event schedule ===== */
+  let eventsRendered = false;   // entrance animation only on the very first render
   function renderEvents(lang){
     const wrap = document.getElementById("events");
     const list = visibleEvents();
@@ -956,7 +957,14 @@
       const t = (s.events[ev.id]) || {};
       const card = document.createElement("div");
       card.className = "event";
-      card.style.animationDelay = (3.9 + i * 0.25) + "s";
+      if (eventsRendered){
+        // Re-render (e.g. language switch): show instantly, no replayed delay.
+        card.style.animation = "none";
+        card.style.opacity = "1";
+        card.style.transform = "none";
+      } else {
+        card.style.animationDelay = (3.9 + i * 0.25) + "s";
+      }
       card.innerHTML =
         '<div class="ev-name">' + (t.name || ev.id) + '</div>' +
         '<div class="ev-date">' + (t.date || "") + '</div>' +
@@ -969,6 +977,7 @@
       card.querySelector(".ev-cal").addEventListener("click", function(){ addToCalendar(ev, lang); });
       wrap.appendChild(card);
     });
+    eventsRendered = true;
   }
 
   /* ===== Apply language ===== */
