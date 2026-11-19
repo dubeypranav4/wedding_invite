@@ -135,6 +135,31 @@
     .fireflies{ display:none; }
   }
 
+  /* Click-to-spawn fireflies */
+  .spark{
+    position:fixed;
+    z-index:0;
+    pointer-events:none;
+    will-change:transform;
+  }
+  .spark-core{
+    width:7px;
+    height:7px;
+    margin:-3.5px 0 0 -3.5px;
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 50%, #fff6df 0%, #f3c65a 55%, rgba(243,198,90,0) 72%);
+    box-shadow:0 0 10px 2px rgba(240,190,79,0.85);
+    transform:scale(0.45);
+    will-change:transform, box-shadow;
+  }
+  @keyframes sparkFlash{
+    0%,100%{ box-shadow:0 0 6px 1px rgba(240,190,79,0.30); }
+    50%{ box-shadow:0 0 18px 5px rgba(240,190,79,0.95); }
+  }
+  @keyframes sparkFade{
+    to{ opacity:0; }
+  }
+
   /* Mandala motif */
   .motif{
     width:120px;
@@ -766,6 +791,97 @@
     document.body.insertBefore(container, document.body.firstChild);
   })();
   /* ===================== */
+
+  /* ===== Click / hold to spawn a firefly ===== */
+  (function(){
+    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const rnd = (min, max) => Math.random() * (max - min) + min;
+    const MIN_SCALE = 0.45;   // size at the instant of click
+    const MAX_SCALE = 5;      // size cap when held past the threshold
+    const GROW_MS   = 1400;   // hold time to reach MAX_SCALE
+    const MAX_SPARKS = 50;    // keep the released ones from piling up forever
+
+    const style = document.createElement("style");
+    document.head.appendChild(style);
+    let uid = 0;
+    const released = [];   // { outer } of sparks flying around
+    let active = null;     // the one currently being held
+
+    function isInteractive(t){
+      return t && t.closest && t.closest(
+        "a,button,input,textarea,select,.lang-toggle,.theme-toggle,.video-card");
+    }
+
+    function grow(now){
+      if (!active) return;
+      const held = now - active.start;
+      const p = Math.min(1, held / GROW_MS);
+      active.scale = MIN_SCALE + p * (MAX_SCALE - MIN_SCALE);
+      active.core.style.transform = "scale(" + active.scale.toFixed(3) + ")";
+      if (held < GROW_MS) active.raf = requestAnimationFrame(grow);
+    }
+
+    function startSpark(x, y){
+      const outer = document.createElement("div");
+      outer.className = "spark";
+      outer.style.left = x + "px";
+      outer.style.top = y + "px";
+      const core = document.createElement("div");
+      core.className = "spark-core";
+      outer.appendChild(core);
+      document.body.appendChild(outer);
+      active = { outer, core, start: performance.now(), scale: MIN_SCALE, raf: 0 };
+      active.raf = requestAnimationFrame(grow);
+    }
+
+    function flyAway(outer){
+      // Build a wander path starting (and, via "alternate", returning) at the spawn point.
+      const steps = Math.floor(rnd(14, 24));
+      const name = "sparkMove" + (uid++);
+      let kf = "@keyframes " + name + "{0%{transform:translate(0,0);}";
+      for (let s = 1; s <= steps; s++){
+        const pct = (s * 100 / steps).toFixed(2);
+        kf += pct + "%{transform:translate(" + rnd(-45, 45).toFixed(1) + "vw,"
+          + rnd(-45, 45).toFixed(1) + "vh);}";
+      }
+      kf += "}";
+      style.appendChild(document.createTextNode(kf));
+      outer.style.animation = name + " " + rnd(55, 100).toFixed(1) + "s linear infinite alternate";
+    }
+
+    function release(){
+      if (!active) return;
+      cancelAnimationFrame(active.raf);
+      const { outer, core } = active;
+      active = null;
+      if (reduced){
+        // No wandering under reduced motion — a brief glow, then gone.
+        outer.style.animation = "sparkFade 1.6s ease forwards";
+        setTimeout(function(){ outer.remove(); }, 1700);
+        return;
+      }
+      flyAway(outer);
+      core.style.animation = "sparkFlash " + Math.floor(rnd(4200, 9000)) + "ms ease-in-out infinite";
+      released.push(outer);
+      while (released.length > MAX_SPARKS){
+        const old = released.shift();
+        if (old) old.remove();
+      }
+    }
+
+    window.addEventListener("pointerdown", function(e){
+      if (e.button !== undefined && e.button !== 0) return;   // left/primary only
+      if (isInteractive(e.target)) return;
+      if (active) release();   // safety: never hold two at once
+      startSpark(e.clientX, e.clientY);
+    }, { passive: true });
+
+    ["pointerup", "pointercancel"].forEach(function(ev){
+      window.addEventListener(ev, release, { passive: true });
+    });
+    window.addEventListener("blur", release);
+  })();
+  /* =========================================== */
 
   /* ===== Configure your event here ===== */
   const CONFIG = {
