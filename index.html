@@ -153,8 +153,8 @@
     will-change:transform, box-shadow;
   }
   @keyframes sparkFlash{
-    0%,100%{ box-shadow:0 0 6px 1px rgba(240,190,79,0.30); }
-    50%{ box-shadow:0 0 18px 5px rgba(240,190,79,0.95); }
+    0%,100%{ box-shadow:0 0 4px 0px rgba(240,190,79,0.12); opacity:0.55; }
+    50%{ box-shadow:0 0 20px 6px rgba(240,190,79,1); opacity:1; }
   }
   @keyframes sparkFade{
     to{ opacity:0; }
@@ -797,7 +797,7 @@
     const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const rnd = (min, max) => Math.random() * (max - min) + min;
     const MIN_SCALE = 0.45;   // size at the instant of click
-    const MAX_SCALE = 5;      // size cap when held past the threshold
+    const MAX_SCALE = 3;      // size cap when held past the threshold
     const GROW_MS   = 1400;   // hold time to reach MAX_SCALE
     const MAX_SPARKS = 50;    // keep the released ones from piling up forever
 
@@ -861,7 +861,7 @@
         return;
       }
       flyAway(outer);
-      core.style.animation = "sparkFlash " + Math.floor(rnd(4200, 9000)) + "ms ease-in-out infinite";
+      core.style.animation = "sparkFlash " + Math.floor(rnd(1800, 4200)) + "ms ease-in-out infinite";
       released.push(outer);
       while (released.length > MAX_SPARKS){
         const old = released.shift();
