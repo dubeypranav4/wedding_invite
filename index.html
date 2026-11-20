@@ -1241,11 +1241,11 @@
   document.getElementById("langEn").addEventListener("click", () => applyLang("en"));
   document.getElementById("langHi").addEventListener("click", () => applyLang("hi"));
 
-  let savedLang = "en";
-  try { savedLang = localStorage.getItem("inviteLang") || "en"; } catch(e){}
+  // Always default to English on load; ?lang=hi (or ?lang=en) can override per link.
+  let startLang = "en";
   const urlLang = new URLSearchParams(location.search).get("lang");
-  if (urlLang === "hi" || urlLang === "en") savedLang = urlLang;
-  applyLang(savedLang);
+  if (urlLang === "hi" || urlLang === "en") startLang = urlLang;
+  applyLang(startLang);
   reveal(document.getElementById("t_closing"));
 
   /* ===== Lazy-loaded video invite (muted; tap for sound; fullscreen) ===== */
